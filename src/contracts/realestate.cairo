@@ -187,6 +187,36 @@ mod RealEstateFractionalOwnership {
                 voting_end_time
             });
         }
+
+        fn cast_vote(ref self: ContractState, proposal_id: u256, support: bool) {
+            let caller = get_caller_address();
+            let mut proposal = self.proposals.read(proposal_id);
+            
+            // Check voting period hasn't ended
+            assert(get_block_timestamp() < proposal.voting_end_time, 'Voting ended');
+            
+            // Check voter has shares
+            let balance = self.erc1155.balance_of(caller, proposal.property_id);
+            assert(balance > 0, 'No shares to vote with');
+            
+            // Update vote counts
+            if support {
+                proposal.votes_for += balance;
+            } else {
+                proposal.votes_against += balance;
+            }
+            
+            // Save updated proposal
+            self.proposals.write(proposal_id, proposal);
+            
+            // Emit event
+            self.emit(VoteCast {
+                proposal_id,
+                voter: caller,
+                supports: support,
+                voting_power: balance
+            });
+        }
         
     }
 }
