@@ -217,6 +217,31 @@ mod RealEstateFractionalOwnership {
                 voting_power: balance
             });
         }
+
+        fn execute_proposal(ref self: ContractState, proposal_id: u256) {
+            let mut proposal = self.proposals.read(proposal_id);
+            
+            // Check proposal hasn't been executed
+            assert(!proposal.executed, 'Already executed');
+            
+            // Check voting period has ended
+            assert(get_block_timestamp() >= proposal.voting_end_time, 'Voting ongoing');
+            
+            // Check threshold met
+            let total_votes = proposal.votes_for + proposal.votes_against;
+            let threshold = self.decision_threshold.read();
+            let percentage_for = (proposal.votes_for * 100_u256) / total_votes;
+            assert(percentage_for >= u256::from(threshold), 'Threshold not met');
+            
+            // Mark as executed
+            proposal.executed = true;
+            self.proposals.write(proposal_id, proposal);
+            
+            // In a real implementation, execute the proposal action here
+            // For now we just emit an event
+            self.emit(ProposalExecuted { proposal_id });
+        }
+        
         
     }
 }
