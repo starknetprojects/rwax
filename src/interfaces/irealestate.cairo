@@ -38,4 +38,6 @@ pub trait IRealEstateFractionalOwnership<TContractState> {
     
     // Property sale
     fn purchase_property(ref self: TContractState, property_id: u256);
+
+    fn get_proposal_details(self: TContractState, proposal_id: u256)
 }

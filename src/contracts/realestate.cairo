@@ -1,8 +1,10 @@
 #[starknet::contract]
 mod RealEstateFractionalOwnership {
     use rwax::interfaces::irealestate::IRealEstateFractionalOwnership;
-    use starknet::{ContractAddress, get_caller_address, get_contract_address, storage::{
-        Map, StoragePointerReadAccess, StoragePointerWriteAccess}};
+    use starknet::{
+        ContractAddress, get_caller_address, get_contract_address,
+        storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess},
+    };
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin::token::erc1155::{ERC1155Component, ERC1155HooksEmptyImpl};
 
@@ -22,25 +24,21 @@ mod RealEstateFractionalOwnership {
         erc1155: ERC1155Component::Storage,
         #[substorage(v0)]
         src5: SRC5Component::Storage,
-
         // Property registry
         property_count: u256,
         // property_details: Map<u256, PropertyDetails>,
-        
+
         // Rental income tracking per property
         total_rental_income: Map<u256, u256>,
         claimed_rental_income: Map<(u256, ContractAddress), u256>,
         rental_income_per_share: Map<u256, u256>,
-        
         // Management
         property_managers: Map<u256, ContractAddress>,
-        management_fee_percent: u8,  // Out of 100
-        
+        management_fee_percent: u8, // Out of 100
         // Governance
         // proposals: Map<u256, Proposal>,
         proposal_count: u256,
-        decision_threshold: u8,  // Percentage needed to approve (e.g. 51)
-        
+        decision_threshold: u8, // Percentage needed to approve (e.g. 51)
         // Property sale status
         for_sale: Map<u256, bool>,
         sale_price: Map<u256, u256>,
@@ -53,7 +51,6 @@ mod RealEstateFractionalOwnership {
         ERC1155Event: ERC1155Component::Event,
         #[flat]
         SRC5Event: SRC5Component::Event,
-
         // Custom events
         PropertyAdded: PropertyAdded,
         RentalIncomeDistributed: RentalIncomeDistributed,
@@ -125,44 +122,44 @@ mod RealEstateFractionalOwnership {
 
 
     #[constructor]
-    fn constructor(ref self: ContractState, uri: felt252,
-        management_fee_percent: u8,
-        decision_threshold: u8) {
+    fn constructor(
+        ref self: ContractState, uri: felt252, management_fee_percent: u8, decision_threshold: u8,
+    ) {
         self.erc1155.initializer("");
         assert(management_fee_percent <= 20, 'Fee too high');
         assert(decision_threshold > 50 && decision_threshold <= 100, 'Invalid threshold');
-        
+
         // Initialize contract parameters
         self.management_fee_percent.write(management_fee_percent);
         self.decision_threshold.write(decision_threshold);
         self.property_count.write(0);
-        self.proposal_count.write(0);  
+        self.proposal_count.write(0);
     }
 
     #[external(v0)]
     impl RealEstateFractionalOwnershipImpl of IRealEstateFractionalOwnership<ContractState> {
         fn create_proposal(
-            ref self: ContractState, 
+            ref self: ContractState,
             property_id: u256,
-            description: felt252, 
+            description: felt252,
             value: u256,
             recipient: ContractAddress,
-            voting_period: u64
+            voting_period: u64,
         ) {
             // Only property manager or significant shareholders can create proposals
             let caller = get_caller_address();
             let manager = self.property_managers.read(property_id);
             let balance = self.erc1155.balance_of(caller, property_id);
             let details = self.property_details.read(property_id);
-            
+
             assert(
                 caller == manager || balance > details.total_shares / 10_u256,
-                'Not authorized to propose'
+                'Not authorized to propose',
             );
-            
+
             let proposal_id = self.proposal_count.read();
             let voting_end_time = get_block_timestamp() + voting_period;
-            
+
             let proposal = Proposal {
                 property_id,
                 description,
@@ -171,23 +168,22 @@ mod RealEstateFractionalOwnership {
                 voting_end_time,
                 executed: false,
                 votes_for: 0_u256,
-                votes_against: 0_u256
+                votes_against: 0_u256,
             };
-            
+
             // Store proposal
             self.proposals.write(proposal_id, proposal);
             self.proposal_count.write(proposal_id + 1);
-            
+
             // Emit event
-            self.emit(ProposalCreated {
-                proposal_id,
-                property_id,
-                creator: caller,
-                description,
-                voting_end_time
-            });
+            self
+                .emit(
+                    ProposalCreated {
+                        proposal_id, property_id, creator: caller, description, voting_end_time,
+                    },
+                );
         }
-        
+
         fn add_property(
             ref self: ContractState,
             property_address: felt252,
@@ -197,13 +193,13 @@ mod RealEstateFractionalOwnership {
             total_shares: u256,
             share_price: u256,
             initial_owner: ContractAddress,
-            property_manager: ContractAddress
+            property_manager: ContractAddress,
         ) {
             // Only contract owner can add properties
             self.src5.assert_only_owner();
-            
+
             let property_id = self.property_count.read();
-            
+
             // Create property details
             let details = PropertyDetails {
                 property_id,
@@ -212,25 +208,25 @@ mod RealEstateFractionalOwnership {
                 property_value,
                 property_image_uri,
                 total_shares,
-                share_price
+                share_price,
             };
-            
+
             // Mint all shares to initial owner
             self.erc1155.mint(initial_owner, property_id, total_shares, array![].span());
-            
+
             // Store property details and manager
             self.property_details.write(property_id, details);
             self.property_managers.write(property_id, property_manager);
-            
+
             // Increment property count
             self.property_count.write(property_id + 1);
-            
+
             // Emit event
-            self.emit(PropertyAdded {
-                property_id,
-                property_address,
-                total_shares
-            });
+            self.emit(PropertyAdded { property_id, property_address, total_shares });
+        }
+
+        fn get_proposal_details(self: @ContractState, proposal_id: u256) -> Proposal {
+            self.proposals.read(proposal_id)
         }
     }
 }
