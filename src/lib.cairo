@@ -31,4 +31,9 @@ pub mod structs {
     pub mod metal_proposal;
     pub mod property;
     pub mod proporsal;
+    pub mod irwa_factory;
+}
+
+pub mod events {
+    // pub mod factory;
 }
