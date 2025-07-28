@@ -11,6 +11,7 @@ pub struct PriceUpdated {
     pub timestamp: u64,
 }
 
+
 #[derive(Drop, starknet::Event)]
 pub struct PriceFeederGranted {
     #[key]
@@ -18,6 +19,7 @@ pub struct PriceFeederGranted {
     #[key]
     pub granter: ContractAddress,
 }
+
 
 #[derive(Drop, starknet::Event)]
 pub struct PriceFeederRevoked {
@@ -27,12 +29,9 @@ pub struct PriceFeederRevoked {
     pub revoker: ContractAddress,
 }
 
+
 #[derive(Drop, starknet::Event)]
 pub struct StalenessThresholdUpdated {
     pub old_threshold: u64,
     pub new_threshold: u64,
 }
-
-
-
-
