@@ -36,4 +36,5 @@ pub mod structs {
 
 pub mod events {
     // pub mod factory;
+    pub mod fractionalization;
 }
