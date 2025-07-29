@@ -27,6 +27,7 @@ pub mod structs {
     // real estate structs
 
     // metal structs
+    pub mod irwa_factory;
     pub mod metal_property;
     pub mod metal_proposal;
     pub mod property;
